@@ -1,0 +1,52 @@
+name: Release
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            suffix: linux
+          - os: windows-latest
+            suffix: windows.exe
+          - os: macos-latest
+            suffix: macos.zip
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install Poetry
+        run: pipx install poetry
+
+      - name: Install dependencies
+        run: poetry install
+
+      - name: Build with PyInstaller
+        run: poetry run pyinstaller MotionTracker.spec
+
+      - name: Prepare Linux binary
+        if: runner.os == 'Linux'
+        run: mv dist/MotionTracker dist/MotionTracker-${{ github.event.release.tag_name }}-linux
+
+      - name: Prepare Windows binary
+        if: runner.os == 'Windows'
+        run: mv dist/MotionTracker.exe dist/MotionTracker-${{ github.event.release.tag_name }}-windows.exe
+
+      - name: Prepare macOS binary
+        if: runner.os == 'macOS'
+        run: cd dist && zip -r MotionTracker-${{ github.event.release.tag_name }}-${{ matrix.suffix }} MotionTracker.app
+
+      - name: Upload release asset
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/MotionTracker-${{ github.event.release.tag_name }}-${{ matrix.suffix }}
