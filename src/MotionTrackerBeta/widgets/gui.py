@@ -647,13 +647,16 @@ class VideoWidget(QWidget):
 
     def openNewFile(self):
         """Opens a new video file"""
+        settings = QSettings("MotionTracker", "MotionTracker")
+        last_dir = settings.value("last_video_dir", "")
         filename = QFileDialog.getOpenFileName(
             self,
             "Open Video",
-            "user/Documents/",
+            last_dir,
             "MP4 file (*.mp4);;MOV file (*.mov);;AVI file (*.avi);; MKV file (*.mkv)",
         )[0]
         if filename != "":
+            settings.setValue("last_video_dir", os.path.dirname(filename))
             self.filename = filename
             self.openVideo()
 
