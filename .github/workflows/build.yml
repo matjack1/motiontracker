@@ -1,0 +1,50 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            name: Linux
+          - os: windows-latest
+            name: Windows
+          - os: macos-latest
+            name: macOS
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install Poetry
+        run: pipx install poetry
+
+      - name: Install dependencies
+        run: poetry install
+        env:
+          CMAKE_POLICY_VERSION_MINIMUM: "3.5"
+
+      - name: Build with PyInstaller
+        run: poetry run pyinstaller MotionTracker.spec
+
+      - name: Zip macOS app bundle
+        if: runner.os == 'macOS'
+        run: cd dist && zip -r MotionTracker.zip MotionTracker.app
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MotionTracker-${{ matrix.name }}
+          path: |
+            dist/MotionTracker
+            dist/MotionTracker.exe
+            dist/MotionTracker.zip
