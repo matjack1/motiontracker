@@ -48,6 +48,9 @@ Pillow = ">=10.0"
 pyinstaller = ">=6.6.0"
 setuptools = "<70"  # >=70 adds jaraco namespace packages that PyInstaller can't bundle
 
+[tool.poetry.group.dev.dependencies]
+pyinstaller = {version = "^6.0", python = ">=3.10,<3.15"}
+
 [tool.poetry.scripts]
 motiontracker = "MotionTrackerBeta.main:MotionTracker"
 MotionTrackerBeta = "MotionTrackerBeta.main:MotionTracker"
