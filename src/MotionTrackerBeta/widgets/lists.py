@@ -13,10 +13,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from PyQt5.QtWidgets import QListWidget,QMenu
-from PyQt5.QtGui import QCursor
+from PyQt6.QtWidgets import QListWidget,QMenu
+from PyQt6.QtGui import QCursor
 
-from PyQt5.QtCore import pyqtSignal
+from PyQt6.QtCore import pyqtSignal
 from MotionTrackerBeta.functions.helper import *
 from MotionTrackerBeta.classes.classes import *
 
@@ -40,7 +40,7 @@ class RotationListWidget(QListWidget):
         """Open menu"""
         menu = QMenu()
         menu.addAction("Delete", lambda: self.delete.emit(item.text()))
-        menu.exec_(QCursor.pos())
+        menu.exec(QCursor.pos())
         menu.deleteLater()
 
 
@@ -67,5 +67,5 @@ class ObjectListWidget(QListWidget):
         menu.addAction("Show/Hide", lambda: self.changeVisibility.emit(item.text()))
         menu.addSeparator()
         menu.addAction("Delete", lambda: self.delete.emit(item.text()))
-        menu.exec_(QCursor.pos())
+        menu.exec(QCursor.pos())
         menu.deleteLater()

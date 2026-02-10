@@ -13,9 +13,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from PyQt5.QtGui import *
-from PyQt5.QtCore import *
-from PyQt5.QtWidgets import (
+from PyQt6.QtGui import *
+from PyQt6.QtCore import *
+from PyQt6.QtWidgets import (
     QLabel,
     QLineEdit,
     QSizePolicy,
@@ -86,7 +86,7 @@ class VideoWidget(QWidget):
         self.timer = (
             QTimer()
         )  # To play the video, calls the display function of the next frame every tick
-        self.timer.setTimerType(Qt.PreciseTimer)
+        self.timer.setTimerType(Qt.TimerType.PreciseTimer)
 
         self.setGeometry(100, 100, 1280, 720)  # Default geometry (x, y, w, h)
         self.installEventFilter(self)  # To register mouse clicks and key presses
@@ -282,7 +282,7 @@ class VideoWidget(QWidget):
         self.EndBTN.clicked.connect(self.JumpEnd)
 
         # slider for easier navigation
-        self.VideoSLD = QSlider(Qt.Horizontal)
+        self.VideoSLD = QSlider(Qt.Orientation.Horizontal)
         self.VideoSLD.setMinimum(0)
         self.VideoSLD.setMaximum(10000)
         self.VideoSLD.setValue(0)
@@ -383,7 +383,7 @@ class VideoWidget(QWidget):
 
         # Label for video frames
         self.VidLBL = VideoLabel()
-        self.VidLBL.setAlignment(Qt.AlignCenter)
+        self.VidLBL.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.VidLBL.setMinimumSize(640, 480)
         self.VidLBL.setStyleSheet("background-color: #c9c9c9")
         self.VidLBL.setPixmap(QPixmap(os.path.dirname(os.path.dirname(__file__))+"/images/video.svg"))
@@ -391,7 +391,7 @@ class VideoWidget(QWidget):
         # Label for timestamp
         self.VidTimeLBL = QLabel()
         self.VidTimeLBL.setText("-/-")
-        self.VidTimeLBL.setAlignment(Qt.AlignCenter)
+        self.VidTimeLBL.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.VidTimeLBL.setStyleSheet("font-weight: bold; font-size: 14px")
         self.VidTimeLBL.setFixedWidth(200)
 
@@ -558,7 +558,7 @@ class VideoWidget(QWidget):
         # self.trajectoryCHB = QCheckBox("Trajectory")
         trajectoryLBL = QLabel("Trajectory length:")
         trajectoryLBL.setObjectName("trajectoryLBL")
-        self.playbackSLD = QSlider(Qt.Horizontal)
+        self.playbackSLD = QSlider(Qt.Orientation.Horizontal)
         self.playbackSLD.setMinimum(0)
         self.playbackSLD.setMaximum(100)
         self.playbackSLD.setValue(0)
@@ -594,7 +594,7 @@ class VideoWidget(QWidget):
         LSideLayout.addWidget(self.RulerGB)
         LSideLayout.addWidget(self.roiGB)
         LSideLayout.addItem(
-            QSpacerItem(0, 10, QSizePolicy.Maximum, QSizePolicy.Expanding)
+            QSpacerItem(0, 10, QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Expanding)
         )
         LSideLayout.addWidget(self.reProcessBTN)
         LSideLayout.addWidget(self.TrackBTN)
@@ -606,12 +606,12 @@ class VideoWidget(QWidget):
         RSideLayout.addWidget(self.playbackGB)
         # RSideLayout.addWidget(self.exportVidBTN)
         RSideLayout.addItem(
-            QSpacerItem(0, 10, QSizePolicy.Maximum, QSizePolicy.Expanding)
+            QSpacerItem(0, 10, QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Expanding)
         )
         RSideLayout.addWidget(self.GridGB)
         RSideLayout.addWidget(self.ZoomControlGB)
         RSideLayout.addWidget(self.resetAllBTN)
-        RSideLayout.addItem(QSpacerItem(0, 10, QSizePolicy.Maximum))
+        RSideLayout.addItem(QSpacerItem(0, 10, QSizePolicy.Policy.Maximum))
         RSideLayout.addWidget(self.VidTimeLBL)
         RSideLayout.setContentsMargins(0, 0, 0, 12)
 
@@ -632,7 +632,7 @@ class VideoWidget(QWidget):
         self.postProcessProgressDialog = CalculationProgress()
         self.postProcessDialog = PostProcessSettings()
         self.exportDialog = ExportDialog()
-        self.exportDialog.export.connect(self.getPlotData, Qt.UniqueConnection)
+        self.exportDialog.export.connect(self.getPlotData, Qt.ConnectionType.UniqueConnection)
         # self.PlotDialog = PlotDialog()
 
         # Overall layout
@@ -818,14 +818,14 @@ class VideoWidget(QWidget):
                 frame.shape[1],
                 frame.shape[0],
                 frame.shape[1] * frame.shape[2],
-                QImage.Format_RGB888,
+                QImage.Format.Format_RGB888,
             )
             pix = QPixmap.fromImage(img)
             pix = pix.scaled(
                 self.VidLBL.width(),
                 self.VidLBL.height(),
-                Qt.KeepAspectRatio,
-                Qt.SmoothTransformation,
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation,
             )
 
             # display label
@@ -940,14 +940,14 @@ class VideoWidget(QWidget):
                 frame.shape[1],
                 frame.shape[0],
                 frame.shape[1] * frame.shape[2],
-                QImage.Format_RGB888,
+                QImage.Format.Format_RGB888,
             )
             pix = QPixmap.fromImage(img)
             pix = pix.scaled(
                 self.VidLBL.width(),
                 self.VidLBL.height(),
-                Qt.KeepAspectRatio,
-                Qt.SmoothTransformation,
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation,
             )
 
             # display in label
@@ -1724,7 +1724,7 @@ class VideoWidget(QWidget):
         self.changeRulerVisibilityBTN.setVisible(True)
         self.mmLNE.setVisible(False)
         self.mmLBL.setText(f"{self.ruler.mm_per_pix:.2f} mm/px")
-        self.mmLBL.setAlignment(Qt.AlignCenter)
+        self.mmLBL.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         # disconnect signals
         try:
@@ -1910,7 +1910,7 @@ class VideoWidget(QWidget):
         """Displays the dialog with the tracking settings"""
 
         # show tracking dialog
-        if self.settingsDialog.exec_():
+        if self.settingsDialog.exec():
 
             # get tracker type
             tracker_type = self.settingsDialog.algoCMB.currentText()
@@ -1934,15 +1934,15 @@ class VideoWidget(QWidget):
         """Enables users to change X and Y offsets with the W-A-S-D butttons"""
 
         # chenge offset
-        if event.type() == QEvent.KeyPress:
+        if event.type() == QEvent.Type.KeyPress:
             key = event.key()
-            if key == Qt.Key_W:
+            if key == Qt.Key.Key_W:
                 self.changeYoffset(-5)
-            elif key == Qt.Key_A:
+            elif key == Qt.Key.Key_A:
                 self.changeXoffset(-5)
-            elif key == Qt.Key_S:
+            elif key == Qt.Key.Key_S:
                 self.changeYoffset(5)
-            elif key == Qt.Key_D:
+            elif key == Qt.Key.Key_D:
                 self.changeXoffset(5)
 
         # call parent function
@@ -1996,8 +1996,8 @@ class VideoWidget(QWidget):
         msg.setWindowIcon(QIcon(os.path.dirname(os.path.dirname(__file__))+"/images/logo.svg"))
         msg.setWindowTitle("Error occured!")
         msg.setText(message)
-        msg.setIcon(QMessageBox.Warning)
-        msg.exec_()
+        msg.setIcon(QMessageBox.Icon.Warning)
+        msg.exec()
 
     def showWarningMessage(self, message):
         """Shows the given warning message in a new dialog"""
@@ -2007,8 +2007,8 @@ class VideoWidget(QWidget):
         msg.setWindowIcon(QIcon(os.path.dirname(os.path.dirname(__file__))+"/images/logo.svg"))
         msg.setWindowTitle("Warning!")
         msg.setText(message)
-        msg.setIcon(QMessageBox.Warning)
-        msg.exec_()
+        msg.setIcon(QMessageBox.Icon.Warning)
+        msg.exec()
 
     def trackingSucceeded(self):
         """After successful tracking change layout and functionality, open post-processing"""
@@ -2030,7 +2030,7 @@ class VideoWidget(QWidget):
 
     def openPostProcessing(self):
         # open post-processing settings
-        if self.postProcessDialog.exec_():
+        if self.postProcessDialog.exec():
             self.PostProcesser = PostProcesserThread(
                 True,
                 self.objects_to_track,
@@ -2134,7 +2134,7 @@ class VideoWidget(QWidget):
         # open settings dialog
         settings = RotationSettings()
         settings.set_params(self.objects_to_track)
-        if settings.exec_():
+        if settings.exec():
             P1_name = settings.p1CMB.currentText()
             P2_name = settings.p2CMB.currentText()
             P1 = get_from_list_by_name(self.objects_to_track, P1_name)
@@ -2143,7 +2143,7 @@ class VideoWidget(QWidget):
                 # create rotation and run post-processing
                 R = Rotation(P1, P2)
                 R.calculate()
-                if self.postProcessDialog.exec_():
+                if self.postProcessDialog.exec():
                     self.PostProcesser = PostProcesserThread(
                         False,
                         R,
