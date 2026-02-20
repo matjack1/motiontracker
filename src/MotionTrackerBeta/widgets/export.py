@@ -45,6 +45,7 @@ class ExportingThread(QThread):
         box_bool,
         point_bool,
         trajectory_lenght,
+        marker_size=20,
     ):
         """Initialization"""
         self.camera = camera
@@ -57,6 +58,7 @@ class ExportingThread(QThread):
         self.box_bool = box_bool
         self.point_bool = point_bool
         self.trajectory_length = trajectory_lenght
+        self.marker_size = marker_size
 
         # call parent function
         super(ExportingThread, self).__init__()
@@ -102,6 +104,7 @@ class ExportingThread(QThread):
                 self.box_bool,
                 self.point_bool,
                 self.trajectory_length,
+                self.marker_size,
             )
 
             # write frame to file

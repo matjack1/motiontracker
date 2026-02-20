@@ -81,6 +81,7 @@ class VideoWidget(QWidget):
         self.ruler = Ruler()  # ruler object to store calibration data
         self.mode = False  # False: before tracking, True: after successfull tracking
         self.grid_displayable = False  # To properly display grid
+        self.marker_size = 20  # default marker size in pixels
 
         self.timer = (
             QTimer()
@@ -218,6 +219,15 @@ class VideoWidget(QWidget):
             lambda name: self.changeObjectDisplay(name)
         )
 
+        # Marker size controls
+        markerSizeLBL = QLabel("Marker size:")
+        markerSizeLBL.setObjectName("markerSizeLBL")
+        self.markerSizeSLD = QSlider(Qt.Horizontal)
+        self.markerSizeSLD.setMinimum(5)
+        self.markerSizeSLD.setMaximum(50)
+        self.markerSizeSLD.setValue(20)
+        self.markerSizeSLD.valueChanged.connect(self.updateMarkerSize)
+
         self.ObjectsLayout = QVBoxLayout()
         self.ObjectsLayout.addWidget(self.NewObjectBTN)
         self.ObjectsLayout.addWidget(self.NameLNE)
@@ -225,6 +235,8 @@ class VideoWidget(QWidget):
         self.ObjectsLayout.addWidget(self.SaveBTN)
         self.ObjectsLayout.addWidget(self.CancelBTN)
         self.ObjectsLayout.addWidget(self.ObjectLWG)
+        self.ObjectsLayout.addWidget(markerSizeLBL)
+        self.ObjectsLayout.addWidget(self.markerSizeSLD)
 
         self.ObjectsGB = QGroupBox()
         self.ObjectsGB.setTitle("Objects to track")
@@ -793,6 +805,7 @@ class VideoWidget(QWidget):
                     self.boxCHB.isChecked(),
                     self.pointCHB.isChecked(),
                     round(self.playbackSLD.value() * self.num_of_frames / 100),
+                    self.marker_size,
                 )
 
             # crop and color
@@ -858,7 +871,7 @@ class VideoWidget(QWidget):
                     if obj.visible:
                         x, y = obj.point
                         frame = cv2.drawMarker(
-                            frame, (x, y), (0, 0, 255), 0, thickness=2
+                            frame, (x, y), (0, 0, 255), 0, markerSize=self.marker_size, thickness=2
                         )
                         x0, y0, x1, y1 = tracker2gui(obj.rectangle)
                         frame = cv2.rectangle(frame, (x0, y0), (x1, y1), (255, 0, 0), 2)
@@ -875,7 +888,7 @@ class VideoWidget(QWidget):
                 # Display object selection point
                 if self.point_tmp is not None:
                     x, y = self.point_tmp
-                    frame = cv2.drawMarker(frame, (x, y), (0, 0, 255), 0, thickness=2)
+                    frame = cv2.drawMarker(frame, (x, y), (0, 0, 255), 0, markerSize=self.marker_size, thickness=2)
 
                 # Display object selection rectangle
                 if self.rect_tmp is not None:
@@ -914,6 +927,7 @@ class VideoWidget(QWidget):
                     self.boxCHB.isChecked(),
                     self.pointCHB.isChecked(),
                     round(self.playbackSLD.value() * self.num_of_frames / 100),
+                    self.marker_size,
                 )
 
             # crop and color
@@ -1137,6 +1151,12 @@ class VideoWidget(QWidget):
 
         # reload frame
         self.ReloadCurrentFrame()
+
+    def updateMarkerSize(self, value):
+        """Updates the marker size for tracked points"""
+        self.marker_size = value
+        if self.camera is not None:
+            self.ReloadCurrentFrame()
 
     def relative_to_cv(self, x_rel, y_rel):
         """Calculates the relative coordinates emitted by VidLBL to OpenCV coordinates"""
@@ -2356,6 +2376,7 @@ class VideoWidget(QWidget):
                 self.boxCHB.isChecked(),
                 self.pointCHB.isChecked(),
                 round(self.playbackSLD.value() * self.num_of_frames / 100),
+                self.marker_size,
             )
             self.progressDialog.updateName("Exporting video to " + save_name[0])
             self.progressDialog.rejected.connect(self.exporter.cancel)

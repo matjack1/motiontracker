@@ -26,6 +26,7 @@ def display_objects(
     box_bool,
     point_bool,
     trajectory_length,
+    marker_size=20,
 ):
     """Draws tracked object onto the video frame for playback and export"""
     for obj in objects:
@@ -54,7 +55,7 @@ def display_objects(
                 if point_bool:
                     x, y = obj.point_path[int(pos - section_start + 1)]
                     frame = cv2.drawMarker(
-                        frame, (int(x), int(y)), (0, 0, 255), 0, thickness=2
+                        frame, (int(x), int(y)), (0, 0, 255), 0, markerSize=marker_size, thickness=2
                     )
                     if pos - section_start < trajectory_length:
                         for i in range(1, int(pos - section_start + 2)):
