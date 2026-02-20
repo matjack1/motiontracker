@@ -14,7 +14,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-from PyQt5.QtCore import QThread, pyqtSignal
+from PyQt6.QtCore import QThread, pyqtSignal
 
 import numpy as np
 
@@ -70,9 +70,6 @@ class PostProcesserThread(QThread):
                     ret, xs, vx, ax = differentiate(x, self.dt, self.parameters)
 
                 if not ret:
-                    if self.parameters[1]=="Sliding Chebychev Polynomial Fit":
-                        self.error_occured.emit("Error: A porblem occured while calculating the derivative!\n-pychebfun is not installed.\nInstall it via pip install pychebfun!")
-                        break
                     self.error_occured.emit(
                         "Error: A porblem occured while calculating the derivative!"
                     )
@@ -91,9 +88,6 @@ class PostProcesserThread(QThread):
                     ret, ys, vy, ay = differentiate(y, self.dt, self.parameters)
 
                 if not ret:
-                    if self.parameters[1]=="Sliding Chebychev Polynomial Fit":
-                        self.error_occured.emit("Error: A porblem occured while calculating the derivative!\n-pychebfun is not installed.\nInstall it via pip install pychebfun!")
-                        break
                     self.error_occured.emit(
                         "Error: A porblem occupred while calculating the derivative!"
                     )

@@ -16,9 +16,15 @@
 
 import sys
 import os
-from PyQt5.QtWidgets import QApplication, QSplashScreen
+
+# Ensure local source code is used instead of installed package
+_src_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _src_dir not in sys.path:
+    sys.path.insert(0, _src_dir)
+
+from PyQt6.QtWidgets import QApplication, QSplashScreen
 from MotionTrackerBeta.widgets.gui import VideoWidget
-from PyQt5.QtGui import QPixmap
+from PyQt6.QtGui import QPixmap
 
 
 def MotionTracker():

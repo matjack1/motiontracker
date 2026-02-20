@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from PyQt5.QtWidgets import (
+from PyQt6.QtWidgets import (
     QDialog,
     QGroupBox,
     QHBoxLayout,
@@ -32,7 +32,7 @@ from PyQt5.QtWidgets import (
     QRadioButton,
     QFrame,
 )
-from PyQt5.QtGui import (
+from PyQt6.QtGui import (
     QMouseEvent,
     QCursor,
     QWheelEvent,
@@ -41,10 +41,10 @@ from PyQt5.QtGui import (
     QDoubleValidator,
     QMovie,
 )
-from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt6.QtCore import Qt, pyqtSignal
 from MotionTrackerBeta.functions.helper import *
 from MotionTrackerBeta.classes.classes import *
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg, NavigationToolbar2QT
+from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg, NavigationToolbar2QT
 from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
 import os
@@ -67,7 +67,7 @@ class PostProcessSettings(QDialog):
         super().__init__(parent)
 
         # styling
-        self.setWindowFlags(self.windowFlags() ^ Qt.WindowContextHelpButtonHint)
+        self.setWindowFlags(self.windowFlags() ^ Qt.WindowType.WindowContextHelpButtonHint)
         self.setWindowTitle("Post-processing settings")
         self.setModal(True)
         self.setObjectName("postprocess_window")
@@ -294,12 +294,12 @@ class PostProcessSettings(QDialog):
         self.cutoffOptGB.setVisible(False)
 
         optLayout = QVBoxLayout()
-        optLayout.setAlignment(Qt.AlignTop)
+        optLayout.setAlignment(Qt.AlignmentFlag.AlignTop)
         optLayout.addWidget(self.optRDB)
         optLayout.addWidget(self.cutoffOptGB)
 
         parametersLayout = QHBoxLayout()
-        parametersLayout.setAlignment(Qt.AlignTop)
+        parametersLayout.setAlignment(Qt.AlignmentFlag.AlignTop)
         parametersLayout.addLayout(manSpecLayout)
         parametersLayout.addLayout(optLayout)
 
@@ -361,7 +361,6 @@ class PostProcessSettings(QDialog):
                     "Convex Total Variation Regularization with Regularized Velocity",
                     "Convex Total Variation Regularization with Regularized Acceleration",
                     "Convex Total Variation Regularization with Regularized Jerk",
-                    "Convex Total Variation Regularization with Sliding Jerk",
                     "Convex Total Variation Regularization with Smoothed Acceleration",
                 ]
             )
@@ -372,7 +371,6 @@ class PostProcessSettings(QDialog):
                     "Spectral Derivative",
                     "Sliding Polynomial Derivative",
                     "Savitzky-Golay Filter",
-                    "Sliding Chebychev Polynomial Fit",
                 ]
             )
 
@@ -462,10 +460,7 @@ class PostProcessSettings(QDialog):
             self.orderGB.setVisible(True)
             self.smoothFactGB.setVisible(True)
             self.noInputSpecLBL.setVisible(False)
-        elif algo in {
-            "Iterative Total Variation Regularization with Regularized Velocity",
-            "Convex Total Variation Regularization with Sliding Jerk",
-        }:
+        elif algo == "Iterative Total Variation Regularization with Regularized Velocity":
             # reset
             for p in self.parameters_list:
                 p.setVisible(False)
@@ -498,10 +493,7 @@ class PostProcessSettings(QDialog):
             self.regParGB.setVisible(True)
             self.winSizeGB.setVisible(True)
             self.noInputSpecLBL.setVisible(False)
-        elif algo in {
-            "Sliding Polynomial Derivative",
-            "Sliding Chebychev Polynomial Fit",
-        }:
+        elif algo == "Sliding Polynomial Derivative":
             # reset
             for p in self.parameters_list:
                 p.setVisible(False)
@@ -600,16 +592,6 @@ class PostProcessSettings(QDialog):
                     )
                 else:
                     return None
-            elif algo == "Convex Total Variation Regularization with Sliding Jerk":
-                if (self.iterationsLNE.text() != "") and (self.regParLNE.text() != ""):
-                    return (
-                        False,
-                        algo,
-                        [float(self.regParLNE.text()), int(self.iterationsLNE.text())],
-                        {"solver": "CVXOPT", "iterate": True},
-                    )
-                else:
-                    return None
             elif (
                 algo
                 == "Iterative Total Variation Regularization with Regularized Velocity"
@@ -652,10 +634,7 @@ class PostProcessSettings(QDialog):
                     )
                 else:
                     return None
-            elif algo in {
-                "Sliding Polynomial Derivative",
-                "Sliding Chebychev Polynomial Fit",
-            }:
+            elif algo == "Sliding Polynomial Derivative":
                 if (self.orderLNE.text() != "") and (self.winSizeLNE.text() != ""):
                     if self.slidingCMB.currentText() == "Yes":
                         if self.stepLNE.text() != "":
@@ -736,7 +715,7 @@ class TrackingSettings(QDialog):
         super().__init__(parent)
 
         # styling
-        self.setWindowFlags(self.windowFlags() ^ Qt.WindowContextHelpButtonHint)
+        self.setWindowFlags(self.windowFlags() ^ Qt.WindowType.WindowContextHelpButtonHint)
         self.setWindowTitle("Tracking settings")
         self.setModal(True)
         with open(os.path.dirname(os.path.dirname(__file__))+"/style/tracking.qss", "r") as style:
@@ -757,7 +736,7 @@ class TrackingSettings(QDialog):
         # size change CheckBox
         sizeLBL = QLabel("Track the size change of objects:")
         self.sizeCHB = QCheckBox()
-        self.sizeCHB.setLayoutDirection(Qt.RightToLeft)
+        self.sizeCHB.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
         self.sizeCHB.stateChanged.connect(self.sizeMode)
 
         # FPS input LineEdit
@@ -795,7 +774,7 @@ class TrackingSettings(QDialog):
         Layout.addLayout(sizeLayout)
         Layout.addLayout(fpsLayout)
         Layout.addWidget(self.notificationLBL)
-        Layout.addItem(QSpacerItem(0, 60, QSizePolicy.Maximum, QSizePolicy.Expanding))
+        Layout.addItem(QSpacerItem(0, 60, QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Expanding))
         Layout.addWidget(trackBTN)
         self.setLayout(Layout)
 
@@ -820,14 +799,14 @@ class RotationSettings(QDialog):
         super().__init__(parent)
 
         # styling
-        self.setWindowFlags(self.windowFlags() ^ Qt.WindowContextHelpButtonHint)
+        self.setWindowFlags(self.windowFlags() ^ Qt.WindowType.WindowContextHelpButtonHint)
         self.setWindowTitle("Rotation settings")
         self.setWindowIcon(QIcon(os.path.dirname(os.path.dirname(__file__))+"/images/logo.svg"))
         self.setObjectName("rotation")
         with open(os.path.dirname(os.path.dirname(__file__))+"/style/rotation.qss", "r") as style:
             self.setStyleSheet(style.read())
         self.setModal(True)
-        # self.setAttribute(Qt.WA_DeleteOnClose) TODO
+        # self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose) TODO
 
         # initialize and organize layout
         instuctionLBL = QLabel("Select two points for for tracking")
@@ -870,7 +849,7 @@ class TrackingProgress(QDialog):
         super().__init__(parent)
 
         # styling
-        self.setWindowFlags(self.windowFlags() ^ Qt.WindowContextHelpButtonHint)
+        self.setWindowFlags(self.windowFlags() ^ Qt.WindowType.WindowContextHelpButtonHint)
         self.setWindowTitle("Calculation in progress...")
         self.setWindowIcon(QIcon(os.path.dirname(os.path.dirname(__file__))+"/images/logo.svg"))
         with open(os.path.dirname(os.path.dirname(__file__))+"/style/progress.qss", "r") as style:
@@ -888,7 +867,7 @@ class TrackingProgress(QDialog):
         self.progressbar.setMinimumWidth(400)
         cancelProgressBTN = QPushButton("Cancel")
         cancelProgressBTN.clicked.connect(self.rejected)
-        Layout.addWidget(self.label, Qt.AlignCenter)
+        Layout.addWidget(self.label, alignment=Qt.AlignmentFlag.AlignCenter)
         Layout.addWidget(self.progressbar)
         Layout.addWidget(cancelProgressBTN)
         self.setLayout(Layout)
@@ -912,7 +891,7 @@ class CalculationProgress(QDialog):
         super().__init__(parent)
 
         # styling
-        self.setWindowFlags(self.windowFlags() ^ Qt.WindowContextHelpButtonHint)
+        self.setWindowFlags(self.windowFlags() ^ Qt.WindowType.WindowContextHelpButtonHint)
         self.setWindowTitle("Calculation in progress...")
         self.setWindowIcon(QIcon(os.path.dirname(os.path.dirname(__file__))+"/images/logo.svg"))
         with open(os.path.dirname(os.path.dirname(__file__))+"/style/progress.qss", "r") as style:
@@ -934,8 +913,8 @@ class CalculationProgress(QDialog):
         self.movie = QMovie(os.path.dirname(os.path.dirname(__file__))+"/images/loader.gif")
         self.movieLBL.setMovie(self.movie)
         self.movieLBL.setStyleSheet("text-align: center;")
-        vLayout.addWidget(self.label, Qt.AlignCenter)
-        vLayout.addWidget(self.movieLBL, Qt.AlignCenter)
+        vLayout.addWidget(self.label, alignment=Qt.AlignmentFlag.AlignCenter)
+        vLayout.addWidget(self.movieLBL, alignment=Qt.AlignmentFlag.AlignCenter)
         Layout.addLayout(vLayout)
         Layout.addWidget(cancelProgressBTN)
         self.setLayout(Layout)
@@ -962,7 +941,7 @@ class ExportDialog(QDialog):
         super().__init__(parent)
 
         # styling
-        self.setWindowFlags(self.windowFlags() ^ Qt.WindowContextHelpButtonHint)
+        self.setWindowFlags(self.windowFlags() ^ Qt.WindowType.WindowContextHelpButtonHint)
         self.setWindowIcon(QIcon(os.path.dirname(os.path.dirname(__file__))+"/images/logo.svg"))
         self.setObjectName("export_dialog")
         with open(os.path.dirname(os.path.dirname(__file__))+"/style/export.qss", "r") as style:
@@ -1035,7 +1014,7 @@ class ExportDialog(QDialog):
         buttonHLayout.addWidget(exportObjBTN)
 
         objLBL = QLabel("Tracked objects")
-        objLBL.setAlignment(Qt.AlignCenter)
+        objLBL.setAlignment(Qt.AlignmentFlag.AlignCenter)
         objLBL.setStyleSheet("font-weight: bold; font-size: 14px;")
         objLBL.setMaximumHeight(20)
 
@@ -1049,7 +1028,7 @@ class ExportDialog(QDialog):
 
         ## ROTATION ##
         rotLBL = QLabel("Tracked rotation")
-        rotLBL.setAlignment(Qt.AlignCenter)
+        rotLBL.setAlignment(Qt.AlignmentFlag.AlignCenter)
         rotLBL.setStyleSheet("font-weight: bold; font-size: 14px;")
         rotLBL.setMaximumHeight(20)
 
@@ -1105,7 +1084,7 @@ class ExportDialog(QDialog):
 
         ## SIZE CHANGE ##
         sizeLBL = QLabel("Size change")
-        sizeLBL.setAlignment(Qt.AlignCenter)
+        sizeLBL.setAlignment(Qt.AlignmentFlag.AlignCenter)
         sizeLBL.setStyleSheet("font-weight: bold; font-size: 14px;")
         sizeLBL.setMaximumHeight(20)
 
@@ -1132,7 +1111,7 @@ class ExportDialog(QDialog):
 
         # NO ITEM WARNING
         self.warningLBL = QLabel("No tracked object to plot or export!")
-        self.warningLBL.setAlignment(Qt.AlignCenter)
+        self.warningLBL.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.warningLBL.setStyleSheet("font-weight: bold; font-size: 14px;")
         self.warningLBL.setVisible(False)
 
@@ -1476,7 +1455,7 @@ class PlotDialog(QWidget):
         # styling
         self.setWindowTitle("Figure")
         self.setWindowIcon(QIcon(os.path.dirname(os.path.dirname(__file__))+"/images/logo.svg"))
-        self.setAttribute(Qt.WA_DeleteOnClose)
+        self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
 
         # create figure
         self.figure = Figure()

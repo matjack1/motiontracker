@@ -13,9 +13,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from PyQt5.QtWidgets import QLabel
-from PyQt5.QtGui import QMouseEvent,QWheelEvent
-from PyQt5.QtCore import pyqtSignal
+from PyQt6.QtWidgets import QLabel
+from PyQt6.QtGui import QMouseEvent,QWheelEvent
+from PyQt6.QtCore import pyqtSignal
 
 from MotionTrackerBeta.functions.helper import *
 
@@ -46,7 +46,7 @@ class VideoLabel(QLabel):
 
     def mousePressEvent(self, ev: QMouseEvent):
         """Handles mouse press event, emits coordinates"""
-        x_label, y_label, = ev.x(), ev.y()
+        x_label, y_label = int(ev.position().x()), int(ev.position().y())
 
         if self.pixmap():
             label_size = self.size()
@@ -71,7 +71,7 @@ class VideoLabel(QLabel):
 
     def mouseMoveEvent(self, ev: QMouseEvent):
         """Handles mouse movement, emits coordinates"""
-        x_label, y_label, = ev.x(), ev.y()
+        x_label, y_label = int(ev.position().x()), int(ev.position().y())
 
         if self.pixmap():
             label_size = self.size()
@@ -96,7 +96,7 @@ class VideoLabel(QLabel):
 
     def mouseReleaseEvent(self, ev: QMouseEvent):
         """Handles mouse release, emits coordinates"""
-        x_label, y_label, = ev.x(), ev.y()
+        x_label, y_label = int(ev.position().x()), int(ev.position().y())
 
         if self.pixmap():
             label_size = self.size()
