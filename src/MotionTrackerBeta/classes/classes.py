@@ -68,6 +68,23 @@ class Motion:
             return True
         return False
 
+    def to_dict(self):
+        return {
+            "name": self.name,
+            "point": list(self.point) if self.point else None,
+            "rectangle": list(self.rectangle) if self.rectangle else None,
+            "rectangle_visible": self.rectangle_visible,
+        }
+
+    @classmethod
+    def from_dict(cls, d):
+        return cls(
+            name=d["name"],
+            point=tuple(d["point"]) if d.get("point") else None,
+            rectangle=tuple(d["rectangle"]) if d.get("rectangle") else None,
+            rectangle_visible=d.get("rectangle_visible", True),
+        )
+
 
 class Rotation:
     """Object that stores rotation data"""
@@ -170,6 +187,23 @@ class Ruler:
         self.mm = None
         self.mm_per_pix = None
         self.rdy = False
+
+    def to_dict(self):
+        if not self.displayable() or self.mm is None:
+            return None
+        return {
+            "x0": self.x0, "y0": self.y0,
+            "x1": self.x1, "y1": self.y1,
+            "mm": self.mm,
+        }
+
+    def load_from_dict(self, d):
+        self.x0 = d["x0"]
+        self.y0 = d["y0"]
+        self.x1 = d["x1"]
+        self.y1 = d["y1"]
+        self.mm = d["mm"]
+        self.calculate()
 
 
 class Logger:

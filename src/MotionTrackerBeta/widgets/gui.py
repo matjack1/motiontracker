@@ -48,6 +48,7 @@ from MotionTrackerBeta.classes.classes import *
 
 from math import floor, ceil
 
+import json
 import os
 
 import pandas as pd
@@ -600,6 +601,19 @@ class VideoWidget(QWidget):
         # LSideLayout.addWidget(self.ZoomControlGB)
         LSideLayout.addWidget(self.RulerGB)
         LSideLayout.addWidget(self.roiGB)
+
+        # Settings save/load buttons
+        self.SaveSettingsBTN = QPushButton("Save Settings")
+        self.SaveSettingsBTN.clicked.connect(self.save_settings)
+        self.SaveSettingsBTN.setVisible(False)
+        self.LoadSettingsBTN = QPushButton("Load Settings")
+        self.LoadSettingsBTN.clicked.connect(self.load_settings_from_file)
+        self.LoadSettingsBTN.setVisible(False)
+        SettingsLayout = QHBoxLayout()
+        SettingsLayout.addWidget(self.SaveSettingsBTN)
+        SettingsLayout.addWidget(self.LoadSettingsBTN)
+        LSideLayout.addLayout(SettingsLayout)
+
         LSideLayout.addItem(
             QSpacerItem(0, 10, QSizePolicy.Maximum, QSizePolicy.Expanding)
         )
@@ -699,6 +713,8 @@ class VideoWidget(QWidget):
         self.PropGB.setVisible(True)
         self.OpenBTN.setVisible(False)
         self.RemoveVideoBTN.setVisible(True)
+        self.SaveSettingsBTN.setVisible(True)
+        self.LoadSettingsBTN.setVisible(True)
 
         # Connect to timer and zoom
         self.VidLBL.wheel.connect(self.changeZoom)
@@ -706,6 +722,9 @@ class VideoWidget(QWidget):
 
         # load first frame
         self.nextFrame()
+
+        # auto-load saved settings if they exist
+        self.load_settings()
 
     def stopVideo(self):
         """Stops playback and jumps to the beginning"""
@@ -748,7 +767,158 @@ class VideoWidget(QWidget):
         # resetting data
         self.OpenBTN.setVisible(True)
         self.RemoveVideoBTN.setVisible(False)
+        self.SaveSettingsBTN.setVisible(False)
+        self.LoadSettingsBTN.setVisible(False)
         self.resetAll()
+
+    def settings_file_path(self):
+        """Returns the path to the settings file for the current video"""
+        if not self.filename:
+            return None
+        return self.filename + ".motiontracker.json"
+
+    def save_settings(self):
+        """Saves current per-video settings to a JSON file, with a file dialog"""
+        default_path = self.settings_file_path()
+        if default_path is None:
+            return
+
+        path = QFileDialog.getSaveFileName(
+            self,
+            "Save Settings",
+            default_path,
+            "MotionTracker Settings (*.motiontracker.json)",
+        )[0]
+        if not path:
+            return
+
+        data = {"version": 1}
+
+        # Objects
+        if self.objects_to_track:
+            data["objects"] = [obj.to_dict() for obj in self.objects_to_track]
+
+        # Ruler
+        ruler_data = self.ruler.to_dict()
+        if ruler_data is not None:
+            data["ruler"] = ruler_data
+
+        # Section
+        if self.section_start is not None and self.section_stop is not None:
+            data["section"] = {
+                "start": int(self.section_start),
+                "stop": int(self.section_stop),
+            }
+
+        # ROI
+        if self.roi_rect is not None:
+            data["roi"] = list(self.roi_rect)
+
+        try:
+            with open(path, "w") as f:
+                json.dump(data, f, indent=2)
+        except OSError:
+            self.showWarningMessage("Could not save settings file.")
+
+    def load_settings(self):
+        """Loads per-video settings from a JSON file next to the video"""
+        path = self.settings_file_path()
+        if path is None or not os.path.isfile(path):
+            return
+
+        try:
+            with open(path, "r") as f:
+                data = json.load(f)
+        except (OSError, json.JSONDecodeError):
+            return
+
+        self._apply_settings(data)
+
+    def load_settings_from_file(self):
+        """Opens a file dialog to load settings from a chosen JSON file"""
+        if self.camera is None:
+            return
+        start_dir = os.path.dirname(self.filename) if self.filename else ""
+        filename = QFileDialog.getOpenFileName(
+            self,
+            "Load Settings",
+            start_dir,
+            "MotionTracker Settings (*.motiontracker.json)",
+        )[0]
+        if filename:
+            # Reset current settings before loading
+            self.resetAll()
+            # Re-set section defaults since resetAll clears them
+            self.section_start = 1
+            self.section_stop = self.num_of_frames
+            self.SectionStartLBL.setText(
+                f"Start: {self.time_to_display(self.section_start)}"
+            )
+            self.SectionStopLBL.setText(
+                f"Stop: {self.time_to_display(self.section_stop)}"
+            )
+            self.setresetStartBTN.setText("Clear")
+            self.setresetStopBTN.setText("Clear")
+            # Load and apply settings from the chosen file
+            try:
+                with open(filename, "r") as f:
+                    data = json.load(f)
+                self._apply_settings(data)
+            except (OSError, json.JSONDecodeError):
+                self.showWarningMessage("Could not load settings file.")
+
+    def _apply_settings(self, data):
+        """Applies settings from a parsed JSON dict"""
+        # Section
+        section = data.get("section")
+        if section:
+            self.section_start = section["start"]
+            self.section_stop = section["stop"]
+            self.SectionStartLBL.setText(
+                f"Start: {self.time_to_display(self.section_start)}"
+            )
+            self.SectionStopLBL.setText(
+                f"Stop: {self.time_to_display(self.section_stop)}"
+            )
+            self.setresetStartBTN.setText("Clear")
+            self.setresetStopBTN.setText("Clear")
+
+        # Objects
+        for obj_data in data.get("objects", []):
+            M = Motion.from_dict(obj_data)
+            self.objects_to_track.append(M)
+            self.ObjectLWG.addItem(M.name)
+            self.exportDialog.add_object(M.name)
+
+        # Ruler
+        ruler_data = data.get("ruler")
+        if ruler_data:
+            self.ruler.load_from_dict(ruler_data)
+            self.exportDialog.setRuler(self.ruler.rdy)
+            self.mmLBL.setText(f"{self.ruler.mm_per_pix:.2f} mm/px")
+            self.mmLBL.setAlignment(Qt.AlignCenter)
+            self.mmLBL.setVisible(True)
+            self.setRulerBTN.setVisible(False)
+            self.removeRulerBTN.setVisible(True)
+            self.changeRulerVisibilityBTN.setVisible(True)
+
+        # ROI
+        roi_data = data.get("roi")
+        if roi_data:
+            self.roi_rect = tuple(roi_data)
+            self.setRoiBTN.setVisible(False)
+            self.delRoiBTN.setVisible(True)
+
+        # Enable tracking if ready
+        if (
+            len(self.objects_to_track) > 0
+            and self.section_start is not None
+            and self.section_stop is not None
+        ):
+            self.TrackBTN.setEnabled(True)
+
+        # Reload frame to show loaded objects/ruler/roi
+        self.ReloadCurrentFrame()
 
     def StartPauseVideo(self):
         """Starts and pauses the video"""
