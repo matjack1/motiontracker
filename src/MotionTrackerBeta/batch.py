@@ -20,7 +20,7 @@ from MotionTrackerBeta.widgets.process import PostProcesserThread
 VIDEO_EXTENSIONS = {".mp4", ".avi", ".mov", ".mkv", ".wmv", ".flv", ".webm"}
 
 
-def resolve_videos(video_args):
+def find_videos(video_args):
     """Expand directories and globs into a list of video file paths."""
     result = []
     for arg in video_args:
@@ -29,9 +29,7 @@ def resolve_videos(video_args):
             for f in sorted(os.listdir(path)):
                 _, ext = os.path.splitext(f)
                 if ext.lower() in VIDEO_EXTENSIONS:
-                    full = os.path.join(path, f)
-                    if os.path.isfile(full + ".motiontracker.json"):
-                        result.append(full)
+                    result.append(os.path.join(path, f))
         elif os.path.isfile(path):
             result.append(path)
         else:
@@ -39,6 +37,12 @@ def resolve_videos(video_args):
                 if os.path.isfile(match):
                     result.append(os.path.abspath(match))
     return result
+
+
+def resolve_videos(video_args):
+    """Find video files that have .motiontracker.json settings."""
+    return [v for v in find_videos(video_args)
+            if os.path.isfile(v + ".motiontracker.json")]
 
 
 def build_diff_parameters(args):

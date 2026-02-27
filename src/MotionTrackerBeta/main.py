@@ -94,11 +94,50 @@ def main():
         help="Output unit (default: pix). mm/m require ruler in settings.",
     )
 
+    match_parser = subparsers.add_parser(
+        "match", help="Match tracking regions from a reference video to others",
+    )
+    match_parser.add_argument(
+        "reference", help="Reference video with .motiontracker.json settings",
+    )
+    match_parser.add_argument(
+        "targets", nargs="*",
+        help="Target videos or directories (default: same directory as reference)",
+    )
+    match_parser.add_argument(
+        "--frame", type=int, default=0,
+        help="Frame number to extract templates from reference (default: 0)",
+    )
+    match_parser.add_argument(
+        "--target-frame", type=int, default=0,
+        help="Frame number to search in target videos (default: 0)",
+    )
+    match_parser.add_argument(
+        "--method", default="auto",
+        choices=["template", "feature", "auto"],
+        help="Matching method (default: auto - template with feature fallback)",
+    )
+    match_parser.add_argument(
+        "--threshold", type=float, default=0.7,
+        help="Minimum confidence to accept a match, 0-1 (default: 0.7)",
+    )
+    match_parser.add_argument(
+        "--dry-run", action="store_true",
+        help="Show match results without writing settings files",
+    )
+    match_parser.add_argument(
+        "--overwrite", action="store_true",
+        help="Overwrite existing settings files (default: skip)",
+    )
+
     args = parser.parse_args()
 
     if args.command == "batch":
         from MotionTrackerBeta.batch import run_batch
         run_batch(args)
+    elif args.command == "match":
+        from MotionTrackerBeta.match import run_match
+        run_match(args)
     else:
         MotionTracker()
 
