@@ -7,7 +7,7 @@ An easy-to-use, standalone and open-source motion tracking application for resea
 
 ## Features
 - Intutitive graphical user interface
-- Capable of handling the most common video formats
+- Capable of handling the most common video formats, including DICOM files from medical devices
 - Capable of tracking various properties of multiple objects simultaneously
 - Diverse set of built in tracking algorithms, based on the `OpenCV` libary
 - Rich selection of numerical differentiation algorithms powered by the `PyNumDiff` libary
