@@ -53,6 +53,7 @@ hiddenimports = [
     'osqp.ext_builtin',
     'osqp._version',
     'osqp.interface',
+    'pydicom',
 ]
 
 a = Analysis(

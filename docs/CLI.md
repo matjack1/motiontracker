@@ -199,4 +199,4 @@ motiontracker batch ./experiment/
 
 ## Supported Video Formats
 
-`.mp4`, `.avi`, `.mov`, `.mkv`, `.wmv`, `.flv`, `.webm`
+`.mp4`, `.avi`, `.mov`, `.mkv`, `.wmv`, `.flv`, `.webm`, `.dcm`, `.dicom`

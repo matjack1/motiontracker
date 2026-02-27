@@ -12,11 +12,12 @@ import cv2
 import numpy as np
 
 from MotionTrackerBeta.batch import VIDEO_EXTENSIONS, find_videos
+from MotionTrackerBeta.video_io import open_video
 
 
 def read_frame(video_path, frame_num):
     """Read a specific frame from a video file. Returns BGR image or None."""
-    cap = cv2.VideoCapture(video_path)
+    cap = open_video(video_path)
     if not cap.isOpened():
         return None
     cap.set(cv2.CAP_PROP_POS_FRAMES, frame_num)

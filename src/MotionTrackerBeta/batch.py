@@ -17,7 +17,9 @@ from MotionTrackerBeta.classes.classes import Motion, Ruler
 from MotionTrackerBeta.widgets.trackers import TrackingThreadV2
 from MotionTrackerBeta.widgets.process import PostProcesserThread
 
-VIDEO_EXTENSIONS = {".mp4", ".avi", ".mov", ".mkv", ".wmv", ".flv", ".webm"}
+from MotionTrackerBeta.video_io import open_video
+
+VIDEO_EXTENSIONS = {".mp4", ".avi", ".mov", ".mkv", ".wmv", ".flv", ".webm", ".dcm", ".dicom"}
 
 
 def find_videos(video_args):
@@ -107,7 +109,7 @@ def process_single_video(video_path, tracker_type, size_tracking, fps_override,
         ruler.load_from_dict(ruler_data)
 
     # Open video
-    camera = cv2.VideoCapture(video_path)
+    camera = open_video(video_path)
     if not camera.isOpened():
         return False, None, f"Cannot open video: {video_path}"
 

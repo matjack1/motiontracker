@@ -55,6 +55,8 @@ import pandas as pd
 
 import cv2
 
+from MotionTrackerBeta.video_io import open_video
+
 
 class VideoWidget(QWidget):
     def __init__(self):
@@ -667,7 +669,7 @@ class VideoWidget(QWidget):
             self,
             "Open Video",
             last_dir,
-            "MP4 file (*.mp4);;MOV file (*.mov);;AVI file (*.avi);; MKV file (*.mkv)",
+            "MP4 file (*.mp4);;MOV file (*.mov);;AVI file (*.avi);;MKV file (*.mkv);;DICOM file (*.dcm *.dicom)",
         )[0]
         if filename != "":
             settings.setValue("last_video_dir", os.path.dirname(filename))
@@ -676,7 +678,7 @@ class VideoWidget(QWidget):
 
     def openVideo(self):
         """Creates the VideoCapture object and gets required properties"""
-        self.camera = cv2.VideoCapture(self.filename)
+        self.camera = open_video(self.filename)
 
         # get essential video properties
         self.fps = self.camera.get(cv2.CAP_PROP_FPS)
