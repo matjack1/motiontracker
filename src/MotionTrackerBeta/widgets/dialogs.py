@@ -31,6 +31,11 @@ from PyQt5.QtWidgets import (
     QCheckBox,
     QRadioButton,
     QFrame,
+    QTreeWidget,
+    QTreeWidgetItem,
+    QFileDialog,
+    QHeaderView,
+    QAbstractItemView,
 )
 from PyQt5.QtGui import (
     QMouseEvent,
@@ -1508,3 +1513,399 @@ class PlotDialog(QWidget):
         layout.addWidget(self.toolbar)
         layout.addWidget(self.canvas)
         self.setLayout(layout)
+
+
+class MatchDialog(QDialog):
+    """Configuration dialog for matching tracking regions to other videos."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Match Regions to Videos")
+        self.setWindowFlags(self.windowFlags() ^ Qt.WindowContextHelpButtonHint)
+        self.setWindowIcon(QIcon(os.path.dirname(os.path.dirname(__file__)) + "/images/logo.svg"))
+        self.setModal(True)
+        self.setMinimumWidth(500)
+        self._default_dir = ""
+
+        layout = QVBoxLayout()
+
+        # Target videos list
+        targetsGB = QGroupBox("Target Videos")
+        targetsLayout = QVBoxLayout()
+        self.targetListWidget = QListWidget()
+        self.targetListWidget.setSelectionMode(QAbstractItemView.ExtendedSelection)
+        targetsLayout.addWidget(self.targetListWidget)
+
+        btnLayout = QHBoxLayout()
+        self.addFilesBTN = QPushButton("Add Files...")
+        self.addFilesBTN.clicked.connect(self._addFiles)
+        self.addFolderBTN = QPushButton("Add Folder...")
+        self.addFolderBTN.clicked.connect(self._addFolder)
+        self.removeBTN = QPushButton("Remove")
+        self.removeBTN.clicked.connect(self._removeSelected)
+        btnLayout.addWidget(self.addFilesBTN)
+        btnLayout.addWidget(self.addFolderBTN)
+        btnLayout.addWidget(self.removeBTN)
+        targetsLayout.addLayout(btnLayout)
+        targetsGB.setLayout(targetsLayout)
+        layout.addWidget(targetsGB)
+
+        # Settings
+        settingsGB = QGroupBox("Settings")
+        settingsLayout = QVBoxLayout()
+
+        methodLayout = QHBoxLayout()
+        methodLayout.addWidget(QLabel("Method:"))
+        self.methodCMB = QComboBox()
+        self.methodCMB.addItems(["auto", "template", "feature"])
+        methodLayout.addWidget(self.methodCMB)
+        settingsLayout.addLayout(methodLayout)
+
+        threshLayout = QHBoxLayout()
+        threshLayout.addWidget(QLabel("Confidence threshold:"))
+        self.thresholdLNE = QLineEdit("0.7")
+        self.thresholdLNE.setValidator(QDoubleValidator(0.0, 1.0, 2))
+        self.thresholdLNE.setMaximumWidth(60)
+        threshLayout.addWidget(self.thresholdLNE)
+        settingsLayout.addLayout(threshLayout)
+
+        refFrameLayout = QHBoxLayout()
+        refFrameLayout.addWidget(QLabel("Reference frame:"))
+        self.refFrameLNE = QLineEdit("0")
+        self.refFrameLNE.setValidator(QIntValidator(0, 999999))
+        self.refFrameLNE.setMaximumWidth(80)
+        refFrameLayout.addWidget(self.refFrameLNE)
+        settingsLayout.addLayout(refFrameLayout)
+
+        targetFrameLayout = QHBoxLayout()
+        targetFrameLayout.addWidget(QLabel("Target frame:"))
+        self.targetFrameLNE = QLineEdit("0")
+        self.targetFrameLNE.setValidator(QIntValidator(0, 999999))
+        self.targetFrameLNE.setMaximumWidth(80)
+        targetFrameLayout.addWidget(self.targetFrameLNE)
+        settingsLayout.addLayout(targetFrameLayout)
+
+        self.overwriteCHB = QCheckBox("Overwrite existing settings")
+        settingsLayout.addWidget(self.overwriteCHB)
+
+        settingsGB.setLayout(settingsLayout)
+        layout.addWidget(settingsGB)
+
+        # Buttons
+        actionLayout = QHBoxLayout()
+        matchBTN = QPushButton("Match")
+        matchBTN.clicked.connect(self.accept)
+        cancelBTN = QPushButton("Cancel")
+        cancelBTN.clicked.connect(self.reject)
+        actionLayout.addWidget(matchBTN)
+        actionLayout.addWidget(cancelBTN)
+        layout.addLayout(actionLayout)
+
+        self.setLayout(layout)
+
+    def setDefaultDir(self, path):
+        self._default_dir = path
+
+    def _addFiles(self):
+        files, _ = QFileDialog.getOpenFileNames(
+            self, "Select Videos", self._default_dir,
+            "Video files (*.mp4 *.avi *.mov *.mkv *.wmv *.flv *.webm *.dcm *.dicom)",
+        )
+        for f in files:
+            if not self._listContains(f):
+                self.targetListWidget.addItem(f)
+
+    def _addFolder(self):
+        folder = QFileDialog.getExistingDirectory(
+            self, "Select Folder", self._default_dir,
+        )
+        if folder:
+            if not self._listContains(folder):
+                self.targetListWidget.addItem(folder)
+
+    def _removeSelected(self):
+        for item in self.targetListWidget.selectedItems():
+            self.targetListWidget.takeItem(self.targetListWidget.row(item))
+
+    def _listContains(self, text):
+        for i in range(self.targetListWidget.count()):
+            if self.targetListWidget.item(i).text() == text:
+                return True
+        return False
+
+
+class MatchResultsDialog(QDialog):
+    """Shows match results and lets the user accept or discard."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Match Results")
+        self.setWindowFlags(self.windowFlags() ^ Qt.WindowContextHelpButtonHint)
+        self.setWindowIcon(QIcon(os.path.dirname(os.path.dirname(__file__)) + "/images/logo.svg"))
+        self.setModal(True)
+        self.setMinimumWidth(600)
+        self.setMinimumHeight(400)
+
+        layout = QVBoxLayout()
+
+        self.resultsTree = QTreeWidget()
+        self.resultsTree.setHeaderLabels(["Video / Object", "Details"])
+        self.resultsTree.header().setSectionResizeMode(0, QHeaderView.Stretch)
+        self.resultsTree.setAlternatingRowColors(True)
+        layout.addWidget(self.resultsTree)
+
+        self.summaryLBL = QLabel()
+        layout.addWidget(self.summaryLBL)
+
+        actionLayout = QHBoxLayout()
+        acceptBTN = QPushButton("Accept && Write Settings")
+        acceptBTN.clicked.connect(self.accept)
+        discardBTN = QPushButton("Discard")
+        discardBTN.clicked.connect(self.reject)
+        actionLayout.addWidget(acceptBTN)
+        actionLayout.addWidget(discardBTN)
+        layout.addLayout(actionLayout)
+
+        self.setLayout(layout)
+        self.all_results = []
+        self.ref_settings = {}
+
+    def set_results(self, all_results, ref_settings):
+        self.all_results = all_results
+        self.ref_settings = ref_settings
+        self.resultsTree.clear()
+
+        full_match = 0
+        partial = 0
+        failed = 0
+
+        for target_path, results in all_results:
+            video_name = os.path.basename(target_path)
+            video_item = QTreeWidgetItem([video_name, ""])
+
+            if not results:
+                video_item.setText(1, "skipped (existing settings)")
+                self.resultsTree.addTopLevelItem(video_item)
+                continue
+
+            all_ok = True
+            any_ok = False
+            for obj_name, matched, conf, method_used in results:
+                obj_item = QTreeWidgetItem()
+                obj_item.setText(0, obj_name)
+                if matched:
+                    rx, ry = matched["rectangle"][:2]
+                    obj_item.setText(1, f"({rx}, {ry}) conf={conf:.3f} [{method_used}]")
+                    any_ok = True
+                else:
+                    obj_item.setText(1, f"NO MATCH conf={conf:.3f}")
+                    all_ok = False
+                video_item.addChild(obj_item)
+
+            if all_ok:
+                video_item.setText(1, "all matched")
+                full_match += 1
+            elif any_ok:
+                video_item.setText(1, "partial match")
+                partial += 1
+            else:
+                video_item.setText(1, "failed")
+                failed += 1
+
+            self.resultsTree.addTopLevelItem(video_item)
+
+        self.resultsTree.expandAll()
+        total = full_match + partial + failed
+        self.summaryLBL.setText(
+            f"Summary: {full_match} fully matched, {partial} partial, "
+            f"{failed} failed (out of {total})"
+        )
+
+
+class BatchDialog(QDialog):
+    """Configuration dialog for batch processing multiple videos."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Batch Process Videos")
+        self.setWindowFlags(self.windowFlags() ^ Qt.WindowContextHelpButtonHint)
+        self.setWindowIcon(QIcon(os.path.dirname(os.path.dirname(__file__)) + "/images/logo.svg"))
+        self.setModal(True)
+        self.setMinimumWidth(500)
+        self._default_dir = ""
+        self._search_paths = []
+        self.diff_parameters = (False, "First Order Finite Difference", None)
+
+        layout = QVBoxLayout()
+
+        # Videos list
+        videosGB = QGroupBox("Videos with Settings")
+        videosLayout = QVBoxLayout()
+        self.videoListWidget = QListWidget()
+        self.videoListWidget.setSelectionMode(QAbstractItemView.ExtendedSelection)
+        videosLayout.addWidget(self.videoListWidget)
+
+        btnLayout = QHBoxLayout()
+        self.addFolderBTN = QPushButton("Add Folder...")
+        self.addFolderBTN.clicked.connect(self._addFolder)
+        self.removeBTN = QPushButton("Remove")
+        self.removeBTN.clicked.connect(self._removeSelected)
+        self.refreshBTN = QPushButton("Refresh")
+        self.refreshBTN.clicked.connect(self.refreshVideoList)
+        btnLayout.addWidget(self.addFolderBTN)
+        btnLayout.addWidget(self.removeBTN)
+        btnLayout.addWidget(self.refreshBTN)
+        videosLayout.addLayout(btnLayout)
+
+        self.countLBL = QLabel("Found: 0 videos with settings")
+        videosLayout.addWidget(self.countLBL)
+        videosGB.setLayout(videosLayout)
+        layout.addWidget(videosGB)
+
+        # Tracking settings
+        trackingGB = QGroupBox("Tracking")
+        trackingLayout = QVBoxLayout()
+
+        trackerLayout = QHBoxLayout()
+        trackerLayout.addWidget(QLabel("Algorithm:"))
+        self.trackerCMB = QComboBox()
+        self.trackerCMB.addItems(["CSRT", "BOOSTING", "MIL", "KCF", "TLD", "MEDIANFLOW", "MOSSE"])
+        trackerLayout.addWidget(self.trackerCMB)
+        trackingLayout.addLayout(trackerLayout)
+
+        self.sizeCHB = QCheckBox("Track size change")
+        trackingLayout.addWidget(self.sizeCHB)
+
+        fpsLayout = QHBoxLayout()
+        fpsLayout.addWidget(QLabel("FPS override (optional):"))
+        self.fpsLNE = QLineEdit()
+        self.fpsLNE.setValidator(QIntValidator(1, 99999))
+        self.fpsLNE.setMaximumWidth(80)
+        self.fpsLNE.setPlaceholderText("auto")
+        fpsLayout.addWidget(self.fpsLNE)
+        trackingLayout.addLayout(fpsLayout)
+
+        trackingGB.setLayout(trackingLayout)
+        layout.addWidget(trackingGB)
+
+        # Post-processing
+        ppGB = QGroupBox("Post-Processing")
+        ppLayout = QVBoxLayout()
+
+        self.configureDiffBTN = QPushButton("Configure Differentiation...")
+        self.configureDiffBTN.clicked.connect(self._configureDiff)
+        ppLayout.addWidget(self.configureDiffBTN)
+
+        self.diffInfoLBL = QLabel("Algorithm: First Order Finite Difference")
+        ppLayout.addWidget(self.diffInfoLBL)
+
+        ppGB.setLayout(ppLayout)
+        layout.addWidget(ppGB)
+
+        # Output
+        outputGB = QGroupBox("Output")
+        outputLayout = QHBoxLayout()
+        outputLayout.addWidget(QLabel("Unit:"))
+        self.unitCMB = QComboBox()
+        self.unitCMB.addItems(["pix", "mm", "m"])
+        outputLayout.addWidget(self.unitCMB)
+        outputGB.setLayout(outputLayout)
+        layout.addWidget(outputGB)
+
+        # Buttons
+        actionLayout = QHBoxLayout()
+        startBTN = QPushButton("Start Batch")
+        startBTN.clicked.connect(self.accept)
+        cancelBTN = QPushButton("Cancel")
+        cancelBTN.clicked.connect(self.reject)
+        actionLayout.addWidget(startBTN)
+        actionLayout.addWidget(cancelBTN)
+        layout.addLayout(actionLayout)
+
+        self.setLayout(layout)
+
+    def setDefaultDir(self, path):
+        self._default_dir = path
+        self._search_paths = [path] if path else []
+
+    def _addFolder(self):
+        folder = QFileDialog.getExistingDirectory(
+            self, "Select Folder", self._default_dir,
+        )
+        if folder and folder not in self._search_paths:
+            self._search_paths.append(folder)
+            self.refreshVideoList()
+
+    def _removeSelected(self):
+        for item in self.videoListWidget.selectedItems():
+            self.videoListWidget.takeItem(self.videoListWidget.row(item))
+        self.countLBL.setText(f"Found: {self.videoListWidget.count()} videos with settings")
+
+    def refreshVideoList(self):
+        from MotionTrackerBeta.batch import resolve_videos
+        self.videoListWidget.clear()
+        if self._search_paths:
+            videos = resolve_videos(self._search_paths)
+            for v in videos:
+                self.videoListWidget.addItem(v)
+        self.countLBL.setText(f"Found: {self.videoListWidget.count()} videos with settings")
+
+    def _configureDiff(self):
+        dlg = PostProcessSettings(self)
+        if dlg.exec_():
+            self.diff_parameters = dlg.parameters
+            algo_name = self.diff_parameters[1] if len(self.diff_parameters) > 1 else "Unknown"
+            self.diffInfoLBL.setText(f"Algorithm: {algo_name}")
+
+    def getVideos(self):
+        return [self.videoListWidget.item(i).text()
+                for i in range(self.videoListWidget.count())]
+
+
+class BatchProgressDialog(QDialog):
+    """Shows progress during batch processing."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Batch Processing")
+        self.setWindowFlags(self.windowFlags() ^ Qt.WindowContextHelpButtonHint)
+        self.setWindowIcon(QIcon(os.path.dirname(os.path.dirname(__file__)) + "/images/logo.svg"))
+        with open(os.path.dirname(os.path.dirname(__file__)) + "/style/progress.qss", "r") as style:
+            self.setStyleSheet(style.read())
+        self.setModal(True)
+        self.setMinimumWidth(500)
+        self.setMinimumHeight(300)
+
+        layout = QVBoxLayout()
+
+        self.overallLBL = QLabel("Waiting...")
+        layout.addWidget(self.overallLBL)
+
+        self.overallProgressBar = QProgressBar()
+        self.overallProgressBar.setMinimum(0)
+        self.overallProgressBar.setMaximum(100)
+        layout.addWidget(self.overallProgressBar)
+
+        self.logList = QListWidget()
+        layout.addWidget(self.logList)
+
+        cancelBTN = QPushButton("Cancel")
+        cancelBTN.clicked.connect(self.reject)
+        layout.addWidget(cancelBTN)
+
+        self.setLayout(layout)
+
+    def reset(self):
+        self.overallProgressBar.setValue(0)
+        self.overallLBL.setText("Waiting...")
+        self.logList.clear()
+
+    def updateOverall(self, name, current, total):
+        self.overallLBL.setText(f"Processing {current}/{total}: {name}")
+
+    def addResult(self, name, success, csv_path, error):
+        if success:
+            self.logList.addItem(f"{name} ... OK -> {os.path.basename(csv_path)}")
+        else:
+            self.logList.addItem(f"{name} ... FAILED: {error}")
+        self.logList.scrollToBottom()

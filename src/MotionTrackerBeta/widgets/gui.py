@@ -39,6 +39,11 @@ from MotionTrackerBeta.widgets.video import VideoLabel
 from MotionTrackerBeta.widgets.trackers import TrackingThreadV2
 from MotionTrackerBeta.widgets.process import PostProcesserThread
 from MotionTrackerBeta.widgets.export import ExportingThread
+from MotionTrackerBeta.widgets.match_worker import MatchThread
+from MotionTrackerBeta.widgets.batch_worker import BatchThread
+
+from MotionTrackerBeta.match import read_frame, generate_settings
+from MotionTrackerBeta.batch import find_videos, resolve_videos
 
 from MotionTrackerBeta.functions.display import display_objects, draw_grid
 from MotionTrackerBeta.functions.transforms import *
@@ -617,6 +622,18 @@ class VideoWidget(QWidget):
         self.VideoSettingsGB.setLayout(VideoSettingsLayout)
         LSideLayout.addWidget(self.VideoSettingsGB)
 
+        # Match and Batch buttons
+        self.MatchBTN = QPushButton("Match to Videos...")
+        self.MatchBTN.clicked.connect(self.showMatchDialog)
+        self.MatchBTN.setVisible(False)
+        self.BatchBTN = QPushButton("Batch Process...")
+        self.BatchBTN.clicked.connect(self.showBatchDialog)
+        self.BatchBTN.setVisible(False)
+        MatchBatchLayout = QHBoxLayout()
+        MatchBatchLayout.addWidget(self.MatchBTN)
+        MatchBatchLayout.addWidget(self.BatchBTN)
+        LSideLayout.addLayout(MatchBatchLayout)
+
         LSideLayout.addItem(
             QSpacerItem(0, 10, QSizePolicy.Maximum, QSizePolicy.Expanding)
         )
@@ -658,6 +675,10 @@ class VideoWidget(QWidget):
         self.exportDialog = ExportDialog()
         self.exportDialog.export.connect(self.getPlotData, Qt.UniqueConnection)
         # self.PlotDialog = PlotDialog()
+        self.matchDialog = MatchDialog()
+        self.matchResultsDialog = MatchResultsDialog()
+        self.batchDialog = BatchDialog()
+        self.batchProgressDialog = BatchProgressDialog()
 
         # Overall layout
         self.setLayout(PlayerLayout)
@@ -721,6 +742,9 @@ class VideoWidget(QWidget):
         self.OpenBTN.setVisible(False)
         self.RemoveVideoBTN.setVisible(True)
         self.VideoSettingsGB.setVisible(True)
+        self.MatchBTN.setVisible(True)
+        self.MatchBTN.setEnabled(False)
+        self.BatchBTN.setVisible(True)
 
         # Connect to timer and zoom
         self.VidLBL.wheel.connect(self.changeZoom)
@@ -774,6 +798,8 @@ class VideoWidget(QWidget):
         self.OpenBTN.setVisible(True)
         self.RemoveVideoBTN.setVisible(False)
         self.VideoSettingsGB.setVisible(False)
+        self.MatchBTN.setVisible(False)
+        self.BatchBTN.setVisible(False)
         self.resetAll()
 
     def settings_file_path(self):
@@ -781,6 +807,23 @@ class VideoWidget(QWidget):
         if not self.filename:
             return None
         return self.filename + ".motiontracker.json"
+
+    def _build_settings_dict(self):
+        """Build a settings dict from the current GUI state."""
+        data = {"version": 1}
+        if self.objects_to_track:
+            data["objects"] = [obj.to_dict() for obj in self.objects_to_track]
+        ruler_data = self.ruler.to_dict()
+        if ruler_data is not None:
+            data["ruler"] = ruler_data
+        if self.section_start is not None and self.section_stop is not None:
+            data["section"] = {
+                "start": int(self.section_start),
+                "stop": int(self.section_stop),
+            }
+        if self.roi_rect is not None:
+            data["roi"] = list(self.roi_rect)
+        return data
 
     def save_settings(self):
         """Saves current per-video settings to a JSON file, with a file dialog"""
@@ -797,27 +840,7 @@ class VideoWidget(QWidget):
         if not path:
             return
 
-        data = {"version": 1}
-
-        # Objects
-        if self.objects_to_track:
-            data["objects"] = [obj.to_dict() for obj in self.objects_to_track]
-
-        # Ruler
-        ruler_data = self.ruler.to_dict()
-        if ruler_data is not None:
-            data["ruler"] = ruler_data
-
-        # Section
-        if self.section_start is not None and self.section_stop is not None:
-            data["section"] = {
-                "start": int(self.section_start),
-                "stop": int(self.section_stop),
-            }
-
-        # ROI
-        if self.roi_rect is not None:
-            data["roi"] = list(self.roi_rect)
+        data = self._build_settings_dict()
 
         try:
             with open(path, "w") as f:
@@ -921,6 +944,7 @@ class VideoWidget(QWidget):
             and self.section_stop is not None
         ):
             self.TrackBTN.setEnabled(True)
+            self.MatchBTN.setEnabled(True)
 
         # Reload frame to show loaded objects/ruler/roi
         self.ReloadCurrentFrame()
@@ -1436,14 +1460,13 @@ class VideoWidget(QWidget):
             self.setresetStartBTN.setText("Set")
 
         # check if tracking is enabled
-        if (
+        has_objects_and_section = (
             len(self.objects_to_track) > 0
             and self.section_start is not None
             and self.section_stop is not None
-        ):
-            self.TrackBTN.setEnabled(True)
-        else:
-            self.TrackBTN.setEnabled(False)
+        )
+        self.TrackBTN.setEnabled(has_objects_and_section)
+        self.MatchBTN.setEnabled(has_objects_and_section)
 
     def setresetStop(self):
         """Sets and resets the end of the tracked section"""
@@ -1477,14 +1500,13 @@ class VideoWidget(QWidget):
             self.setresetStopBTN.setText("Set")
 
         # check if tracking is enabled
-        if (
+        has_objects_and_section = (
             len(self.objects_to_track) > 0
             and self.section_start is not None
             and self.section_stop is not None
-        ):
-            self.TrackBTN.setEnabled(True)
-        else:
-            self.TrackBTN.setEnabled(False)
+        )
+        self.TrackBTN.setEnabled(has_objects_and_section)
+        self.MatchBTN.setEnabled(has_objects_and_section)
 
     def addNewObject(self):
         """Cunfigures the GUI for setting the point and tectangle that will be used for the tracking"""
@@ -1587,14 +1609,13 @@ class VideoWidget(QWidget):
         self.BackwardBTN.setEnabled(True)
 
         # check if tracking is enabled
-        if (
+        has_objects_and_section = (
             len(self.objects_to_track) > 0
             and self.section_start is not None
             and self.section_stop is not None
-        ):
-            self.TrackBTN.setEnabled(True)
-        else:
-            self.TrackBTN.setEnabled(False)
+        )
+        self.TrackBTN.setEnabled(has_objects_and_section)
+        self.MatchBTN.setEnabled(has_objects_and_section)
 
         # reload
         self.ReloadCurrentFrame()
@@ -1833,12 +1854,13 @@ class VideoWidget(QWidget):
         self.exportDialog.delete_object(name)
 
         # check if tracking is still available
-        if (
-            len(self.objects_to_track) == 0
-            or self.section_start is None
-            or self.section_stop is None
-        ):
-            self.TrackBTN.setEnabled(False)
+        has_objects_and_section = (
+            len(self.objects_to_track) > 0
+            and self.section_start is not None
+            and self.section_stop is not None
+        )
+        self.TrackBTN.setEnabled(has_objects_and_section)
+        self.MatchBTN.setEnabled(has_objects_and_section)
 
         # reload frame
         self.ReloadCurrentFrame()
@@ -2609,3 +2631,134 @@ class VideoWidget(QWidget):
             self.exporter.finished.connect(self.progressDialog.accept)
             self.exporter.start()
             self.progressDialog.show()
+
+    # ---- Match and Batch ----
+
+    def showMatchDialog(self):
+        """Opens the match dialog, then runs matching in a background thread."""
+        if not self.objects_to_track or self.camera is None:
+            return
+
+        self.matchDialog.setDefaultDir(os.path.dirname(self.filename))
+        self.matchDialog.targetListWidget.clear()
+
+        if not self.matchDialog.exec_():
+            return
+
+        # Collect targets from the list
+        targets = []
+        for i in range(self.matchDialog.targetListWidget.count()):
+            targets.append(self.matchDialog.targetListWidget.item(i).text())
+
+        if not targets:
+            self.showWarningMessage("No target videos selected.")
+            return
+
+        # Expand directories into individual video files
+        expanded = find_videos(targets)
+        expanded = [t for t in expanded
+                    if os.path.abspath(t) != os.path.abspath(self.filename)]
+
+        if not expanded:
+            self.showWarningMessage("No target videos found.")
+            return
+
+        # Read reference frame
+        ref_frame_num = int(self.matchDialog.refFrameLNE.text() or "0")
+        ref_frame = read_frame(self.filename, ref_frame_num)
+        if ref_frame is None:
+            self.showWarningMessage(f"Cannot read frame {ref_frame_num} from video.")
+            return
+
+        ref_settings = self._build_settings_dict()
+
+        method = self.matchDialog.methodCMB.currentText()
+        threshold = float(self.matchDialog.thresholdLNE.text() or "0.7")
+        target_frame_num = int(self.matchDialog.targetFrameLNE.text() or "0")
+        overwrite = self.matchDialog.overwriteCHB.isChecked()
+
+        self.matchThread = MatchThread(
+            ref_frame, ref_settings, expanded, method, threshold,
+            target_frame_num, overwrite,
+        )
+
+        self.progressDialog.updateBar(0)
+        self.progressDialog.updateName("Matching regions...")
+        self.matchThread.progressChanged.connect(self.progressDialog.updateBar)
+        self.matchThread.videoStarted.connect(
+            lambda name: self.progressDialog.updateName(f"Matching: {name}")
+        )
+        self.matchThread.error_occured.connect(self.showErrorMessage)
+        self.matchThread.success.connect(self._onMatchComplete)
+        self.progressDialog.rejected.connect(self.matchThread.cancel)
+        self.matchThread.finished.connect(self.progressDialog.accept)
+        self.matchThread.start()
+        self.progressDialog.show()
+
+    def _onMatchComplete(self, all_results):
+        """Called when matching finishes. Shows results dialog."""
+        ref_settings = self._build_settings_dict()
+        self.matchResultsDialog.set_results(all_results, ref_settings)
+
+        if self.matchResultsDialog.exec_():
+            written = 0
+            for target_path, results in all_results:
+                matched_objects = [obj_dict for _, obj_dict, _, _ in results
+                                   if obj_dict is not None]
+                if matched_objects:
+                    generate_settings(ref_settings, matched_objects, target_path)
+                    written += 1
+
+            QMessageBox.information(
+                self, "Match Complete",
+                f"Settings written for {written} video(s).",
+            )
+
+    def showBatchDialog(self):
+        """Opens the batch dialog, then runs batch processing in a background thread."""
+        default_dir = os.path.dirname(self.filename) if self.filename else ""
+        self.batchDialog.setDefaultDir(default_dir)
+        self.batchDialog.refreshVideoList()
+
+        if not self.batchDialog.exec_():
+            return
+
+        videos = self.batchDialog.getVideos()
+        if not videos:
+            self.showWarningMessage("No videos with settings found.")
+            return
+
+        tracker_type = self.batchDialog.trackerCMB.currentText()
+        size_tracking = self.batchDialog.sizeCHB.isChecked()
+        fps_text = self.batchDialog.fpsLNE.text()
+        fps_override = int(fps_text) if fps_text else None
+        diff_parameters = self.batchDialog.diff_parameters
+        unit = self.batchDialog.unitCMB.currentText()
+
+        self.batchThread = BatchThread(
+            videos, tracker_type, size_tracking, fps_override,
+            diff_parameters, unit,
+        )
+
+        self.batchProgressDialog.reset()
+        self.batchThread.videoStarted.connect(self.batchProgressDialog.updateOverall)
+        self.batchThread.videoFinished.connect(self.batchProgressDialog.addResult)
+        self.batchThread.progressChanged.connect(
+            self.batchProgressDialog.overallProgressBar.setValue
+        )
+        self.batchThread.error_occured.connect(self.showErrorMessage)
+        self.batchThread.success.connect(self._onBatchComplete)
+        self.batchProgressDialog.rejected.connect(self.batchThread.cancel)
+        self.batchThread.finished.connect(self.batchProgressDialog.accept)
+        self.batchThread.start()
+        self.batchProgressDialog.show()
+
+    def _onBatchComplete(self):
+        """Called when batch processing finishes successfully."""
+        results = self.batchThread.results
+        ok = sum(1 for _, s, _, _ in results if s)
+        fail = len(results) - ok
+        QMessageBox.information(
+            self, "Batch Complete",
+            f"{ok}/{len(results)} videos processed successfully.\n{fail} failed.",
+        )
