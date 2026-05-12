@@ -604,17 +604,18 @@ class VideoWidget(QWidget):
         LSideLayout.addWidget(self.RulerGB)
         LSideLayout.addWidget(self.roiGB)
 
-        # Settings save/load buttons
+        # Video settings group box
+        self.VideoSettingsGB = QGroupBox("Video settings")
+        self.VideoSettingsGB.setVisible(False)
+        VideoSettingsLayout = QVBoxLayout()
         self.SaveSettingsBTN = QPushButton("Save Settings")
         self.SaveSettingsBTN.clicked.connect(self.save_settings)
-        self.SaveSettingsBTN.setVisible(False)
         self.LoadSettingsBTN = QPushButton("Load Settings")
         self.LoadSettingsBTN.clicked.connect(self.load_settings_from_file)
-        self.LoadSettingsBTN.setVisible(False)
-        SettingsLayout = QHBoxLayout()
-        SettingsLayout.addWidget(self.SaveSettingsBTN)
-        SettingsLayout.addWidget(self.LoadSettingsBTN)
-        LSideLayout.addLayout(SettingsLayout)
+        VideoSettingsLayout.addWidget(self.SaveSettingsBTN)
+        VideoSettingsLayout.addWidget(self.LoadSettingsBTN)
+        self.VideoSettingsGB.setLayout(VideoSettingsLayout)
+        LSideLayout.addWidget(self.VideoSettingsGB)
 
         LSideLayout.addItem(
             QSpacerItem(0, 10, QSizePolicy.Maximum, QSizePolicy.Expanding)
@@ -665,14 +666,18 @@ class VideoWidget(QWidget):
         """Opens a new video file"""
         settings = QSettings("MotionTracker", "MotionTracker")
         last_dir = settings.value("last_video_dir", "")
-        filename = QFileDialog.getOpenFileName(
+        last_filter = settings.value("last_video_filter", "")
+        file_filters = "MP4 file (*.mp4);;MOV file (*.mov);;AVI file (*.avi);;MKV file (*.mkv);;DICOM file (*.dcm *.dicom)"
+        filename, selected_filter = QFileDialog.getOpenFileName(
             self,
             "Open Video",
             last_dir,
-            "MP4 file (*.mp4);;MOV file (*.mov);;AVI file (*.avi);;MKV file (*.mkv);;DICOM file (*.dcm *.dicom)",
-        )[0]
+            file_filters,
+            last_filter,
+        )
         if filename != "":
             settings.setValue("last_video_dir", os.path.dirname(filename))
+            settings.setValue("last_video_filter", selected_filter)
             self.filename = filename
             self.openVideo()
 
@@ -715,8 +720,7 @@ class VideoWidget(QWidget):
         self.PropGB.setVisible(True)
         self.OpenBTN.setVisible(False)
         self.RemoveVideoBTN.setVisible(True)
-        self.SaveSettingsBTN.setVisible(True)
-        self.LoadSettingsBTN.setVisible(True)
+        self.VideoSettingsGB.setVisible(True)
 
         # Connect to timer and zoom
         self.VidLBL.wheel.connect(self.changeZoom)
@@ -769,8 +773,7 @@ class VideoWidget(QWidget):
         # resetting data
         self.OpenBTN.setVisible(True)
         self.RemoveVideoBTN.setVisible(False)
-        self.SaveSettingsBTN.setVisible(False)
-        self.LoadSettingsBTN.setVisible(False)
+        self.VideoSettingsGB.setVisible(False)
         self.resetAll()
 
     def settings_file_path(self):
@@ -1513,6 +1516,10 @@ class VideoWidget(QWidget):
         self.camera.set(cv2.CAP_PROP_POS_FRAMES, (self.section_start - 1))
         self.nextFrame()
         self.ReloadCurrentFrame()
+
+        # start point selection by default
+        self.PickPointBTN.setChecked(True)
+        self.pickPointStart()
 
     def saveObject(self):
         """Saves temporary point and rectangle data in the objects_to_track list"""
