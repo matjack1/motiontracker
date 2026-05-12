@@ -1,6 +1,6 @@
 # Command-Line Interface Reference
 
-MotionTracker provides a CLI for launching the GUI, batch processing videos, and matching tracking regions across videos.
+MotionTracker provides a CLI for launching the GUI and batch processing videos.
 
 ```
 motiontracker <command> [options]
@@ -14,7 +14,6 @@ motiontracker <command> [options]
 |---------|-------------|
 | `gui`   | Launch the graphical interface (default if no command given) |
 | `batch` | Process multiple videos headlessly |
-| `match` | Match tracking regions from a reference video to others |
 
 ---
 
@@ -106,74 +105,7 @@ Each video requires a `.motiontracker.json` file (e.g., `video.mp4.motiontracker
 }
 ```
 
-Settings files can be created via the GUI (Save Settings button) or generated automatically with `motiontracker match`.
-
----
-
-## `motiontracker match`
-
-Find tracking regions from a reference video in other videos using computer vision matching. Generates `.motiontracker.json` settings files for the target videos so they can be processed with `motiontracker batch`.
-
-```
-motiontracker match <reference> [targets...] [options]
-```
-
-### Arguments
-
-| Argument | Description |
-|----------|-------------|
-| `reference` | Reference video that has an existing `.motiontracker.json` settings file |
-| `targets` | Target video files or directories (default: all videos in the same directory as reference) |
-
-### Options
-
-| Option | Default | Description |
-|--------|---------|-------------|
-| `--frame` | `0` | Frame number to extract templates from in the reference video |
-| `--target-frame` | `0` | Frame number to search in target videos |
-| `--method` | `auto` | Matching method: `template`, `feature`, or `auto` |
-| `--threshold` | `0.7` | Minimum confidence (0-1) to accept a match |
-| `--dry-run` | off | Show match results without writing settings files |
-| `--overwrite` | off | Overwrite existing settings files (default: skip videos that already have one) |
-
-### Matching Methods
-
-| Method | Description |
-|--------|-------------|
-| `template` | OpenCV template matching (`TM_CCOEFF_NORMED`). Fast and effective when videos have similar framing. |
-| `feature` | ORB feature detection with brute-force matching and RANSAC homography. More robust to rotation and scale changes. |
-| `auto` | Tries template matching first; falls back to feature matching if confidence is below threshold. |
-
-### Output
-
-For each target video, a `.motiontracker.json` file is generated containing:
-- Matched object positions (adjusted rectangles and points)
-- Ruler, section, and ROI copied from the reference settings
-
-### Examples
-
-```bash
-# Match regions to all videos in the same folder
-motiontracker match reference.mp4
-
-# Preview matches without writing files
-motiontracker match reference.mp4 --dry-run
-
-# Match to specific target videos
-motiontracker match reference.mp4 video2.mp4 video3.mp4
-
-# Match to videos in another directory
-motiontracker match reference.mp4 ./other_experiments/
-
-# Use feature matching with lower threshold
-motiontracker match reference.mp4 --method feature --threshold 0.5
-
-# Use a specific frame from reference and targets
-motiontracker match reference.mp4 --frame 100 --target-frame 50
-
-# Overwrite existing settings
-motiontracker match reference.mp4 --overwrite
-```
+Settings files can be created via the GUI (Save Settings button).
 
 ---
 
@@ -186,13 +118,10 @@ motiontracker gui
 # 2. Save settings (GUI: File > Save Settings)
 #    Creates: reference.mp4.motiontracker.json
 
-# 3. Auto-match regions to all other videos in the folder
-motiontracker match reference.mp4
-
-# 4. Batch process all matched videos
+# 3. Batch process videos
 motiontracker batch ./experiment/
 
-# 5. Results: CSV files alongside each video
+# 4. Results: CSV files alongside each video
 ```
 
 ---
