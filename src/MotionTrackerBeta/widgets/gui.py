@@ -622,21 +622,23 @@ class VideoWidget(QWidget):
         self.VideoSettingsGB.setLayout(VideoSettingsLayout)
         LSideLayout.addWidget(self.VideoSettingsGB)
 
-        # Match and Batch buttons
+        LSideLayout.addItem(
+            QSpacerItem(0, 10, QSizePolicy.Maximum, QSizePolicy.Expanding)
+        )
+
+        # Batch section - always visible at the bottom
+        self.BatchGB = QGroupBox("Batch")
+        BatchLayout = QVBoxLayout()
         self.MatchBTN = QPushButton("Match to Videos...")
         self.MatchBTN.clicked.connect(self.showMatchDialog)
         self.MatchBTN.setVisible(False)
         self.BatchBTN = QPushButton("Batch Process...")
         self.BatchBTN.clicked.connect(self.showBatchDialog)
-        self.BatchBTN.setVisible(False)
-        MatchBatchLayout = QHBoxLayout()
-        MatchBatchLayout.addWidget(self.MatchBTN)
-        MatchBatchLayout.addWidget(self.BatchBTN)
-        LSideLayout.addLayout(MatchBatchLayout)
+        BatchLayout.addWidget(self.MatchBTN)
+        BatchLayout.addWidget(self.BatchBTN)
+        self.BatchGB.setLayout(BatchLayout)
+        LSideLayout.addWidget(self.BatchGB)
 
-        LSideLayout.addItem(
-            QSpacerItem(0, 10, QSizePolicy.Maximum, QSizePolicy.Expanding)
-        )
         LSideLayout.addWidget(self.reProcessBTN)
         LSideLayout.addWidget(self.TrackBTN)
 
@@ -744,8 +746,6 @@ class VideoWidget(QWidget):
         self.VideoSettingsGB.setVisible(True)
         self.MatchBTN.setVisible(True)
         self.MatchBTN.setEnabled(False)
-        self.BatchBTN.setVisible(True)
-
         # Connect to timer and zoom
         self.VidLBL.wheel.connect(self.changeZoom)
         self.timer.timeout.connect(self.nextFrame)
@@ -799,7 +799,6 @@ class VideoWidget(QWidget):
         self.RemoveVideoBTN.setVisible(False)
         self.VideoSettingsGB.setVisible(False)
         self.MatchBTN.setVisible(False)
-        self.BatchBTN.setVisible(False)
         self.resetAll()
 
     def settings_file_path(self):
